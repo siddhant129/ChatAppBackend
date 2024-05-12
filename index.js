@@ -11,6 +11,11 @@ const errorHandler = require("./midddlewares/error");
 const { Socket } = require("dgram");
 
 require("dotenv/config");
+const cors = require("cors");
+
+//Cross origin
+app.use(cors());
+app.options("*", cors());
 
 //JWT Auth
 app.use(jwtAuth());
