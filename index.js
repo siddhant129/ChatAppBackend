@@ -4,7 +4,10 @@ const websocket = require("ws");
 const app = express();
 const server = require("http").createServer(app);
 const mongoose = require("mongoose");
+
+//Importing routes
 const userRouter = require("./Routers/userRouter");
+const chatGrpRouter = require("./Routers/chatGroupRouter");
 const jwtAuth = require("./midddlewares/jwtAuth");
 
 const errorHandler = require("./midddlewares/error");
@@ -20,11 +23,26 @@ app.options("*", cors());
 //JWT Auth
 app.use(jwtAuth());
 
+//Json parser
+app.use(express.json());
+
 const wss = new websocket.Server({ server: server });
 
 wss.on("connection", function connection(ws, req) {
   console.log(`New client added `);
-  console.log(req);
+  // const parameters = url.parse(req.url, true);
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  console.log(url);
+  var userName = url.searchParams.get("username");
+  // const userData = JSON.parse(url.searchParams);
+  // lourl.search;
+  url.searchParams.forEach((ele, key) => {
+    console.log(ele, key);
+    if (key == "userName") {
+      userName = ele;
+    }
+  });
+  console.log(userName);
   ws.send(
     JSON.stringify(
       // JSON.stringify(
@@ -50,6 +68,7 @@ wss.on("connection", function connection(ws, req) {
 
 //Routes
 app.use("/users", userRouter);
+app.use("/chatGrp", chatGrpRouter);
 
 app.get("/", (req, res) => {
   // if (req.params.id === "c1") {
