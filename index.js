@@ -15,6 +15,8 @@ const { Socket } = require("dgram");
 
 require("dotenv/config");
 const cors = require("cors");
+const { Users } = require("./Models/users");
+const { ChatGroup } = require("./Models/ChatGroup");
 
 //Cross origin
 app.use(cors());
@@ -28,39 +30,81 @@ app.use(express.json());
 
 const wss = new websocket.Server({ server: server });
 
-wss.on("connection", function connection(ws, req) {
+var teamUsers = new Set();
+
+wss.on("connection", async (ws, req) => {
   console.log(`New client added `);
-  // const parameters = url.parse(req.url, true);
   const url = new URL(req.url, `http://${req.headers.host}`);
   console.log(url);
   var userName = url.searchParams.get("username");
-  // const userData = JSON.parse(url.searchParams);
-  // lourl.search;
+
   url.searchParams.forEach((ele, key) => {
     console.log(ele, key);
     if (key == "userName") {
       userName = ele;
     }
   });
-  console.log(userName);
+  var flag = false;
+  if (userName) {
+    const userData = await Users.findOne({ userName: userName });
+
+    if (userData) {
+      teamUsers.forEach((ele) => {
+        console.log(ele);
+        if (ele.userName === userName) {
+          flag = true;
+        }
+      });
+    }
+  }
+  if (!flag) {
+    teamUsers.add({ userName: userName, ws: ws });
+  }
+
   ws.send(
-    JSON.stringify(
-      // JSON.stringify(
-      {
-        server: true,
-        message: "Welcome to our chat app :)",
-      }
-      // )
-    )
+    JSON.stringify({
+      server: true,
+      message: "Welcome to our chat app :)",
+    })
   );
 
-  ws.on("message", (message) => {
+  ws.on("message", async (message) => {
     console.log(`new message from client ${ws} :%s`, message);
-    // ws.send(message);
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === websocket.OPEN) {
-        console.log("Client data");
-        client.send(message);
+    var users = [];
+    try {
+      const newMsg = JSON.parse(message);
+
+      if (newMsg.team) {
+        const team = await ChatGroup.findOne({ Name: newMsg.team })
+          .populate({
+            path: "users",
+            populate: {
+              path: "user",
+            },
+          })
+          .then((grp) => {
+            users = grp.users;
+          });
+      }
+    } catch (error) {
+      if (message.team) {
+        const team = await ChatGroup.findOne({ Name: message.team });
+      }
+    }
+    var allUserNames = new Set();
+    users.map((ele) => {
+      if (ele.user) {
+        allUserNames.add(ele.user.userName);
+      }
+    });
+    console.log(allUserNames);
+    teamUsers.forEach((teamUser) => {
+      if (allUserNames.has(teamUser.userName)) {
+        console.log("Hmm user found");
+        if (teamUser.ws !== ws && teamUser.ws.readyState === websocket.OPEN) {
+          console.log("Client data");
+          teamUser.ws.send(message);
+        }
       }
     });
   });
@@ -71,11 +115,6 @@ app.use("/users", userRouter);
 app.use("/chatGrp", chatGrpRouter);
 
 app.get("/", (req, res) => {
-  // if (req.params.id === "c1") {
-  //   clientVar = "client 1";
-  // } else if (req.params.id === "c2") {
-  //   clientVar = "client 2";
-  // }
   Socket.send("NO authetication found");
   res.send("Welcome to websockets ");
 });
