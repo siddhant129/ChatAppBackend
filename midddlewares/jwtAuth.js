@@ -18,7 +18,6 @@ function jwtAuth() {
           const token = req.headers.authorization.split(" ")[0];
           const payload = jsonwebtoken.decode(token);
           req.userId = payload.userId;
-          console.log(token);
           return token;
         }
       }
