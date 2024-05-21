@@ -11,12 +11,10 @@ const chatGroupSchema = new mongoose.Schema({
       user: {
         type: mongoose.SchemaTypes.ObjectId,
         ref: "Users",
-        unique: true,
       },
       admin: {
         type: Boolean,
         default: false,
-        unique: true,
       },
     },
   ],

@@ -1,22 +1,40 @@
-const { json } = require("express");
 const { ChatGroup } = require("../Models/ChatGroup");
 const { Users } = require("../Models/users");
 
+//@private method to all groups
+//Token required
 exports.getChatGroups = async (req, res) => {
   const allGrps = await ChatGroup.find();
   return res.json({ allGroups: allGrps });
 };
 
+//@private method to get user groups
+//Token required
+exports.getUserGroups = async (req, res) => {
+  const userGrps = await ChatGroup.find({
+    users: { $elemMatch: { user: req.userId } },
+  }).populate({
+    path: "users",
+    populate: {
+      path: "user",
+    },
+  });
+
+  return res.status(201).json({ success: true, userGrps: userGrps });
+};
+
+//@private method to create group
+//Token required
 exports.createGrps = async (req, res) => {
   const userData = await Users.findOne({ userName: req.body.createdBy });
   const userId = userData._id;
   req.body.createdBy = userData._id;
   const adminUser = [{ user: userId, admin: true }];
   req.body.users = adminUser;
-  const createdGrp = await (await ChatGroup.create(req.body)).populate("users");
+  const createdGrp = await ChatGroup.create(req.body);
 
   if (createdGrp) {
-    return res.json({ createdGropup: createdGrp });
+    return res.status(201).json({ createdGropup: createdGrp });
   } else {
     return res.send("No grp created");
   }

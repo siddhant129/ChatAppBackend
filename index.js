@@ -33,13 +33,10 @@ const wss = new websocket.Server({ server: server });
 var teamUsers = new Set();
 
 wss.on("connection", async (ws, req) => {
-  console.log(`New client added `);
   const url = new URL(req.url, `http://${req.headers.host}`);
-  console.log(url);
   var userName = url.searchParams.get("username");
 
   url.searchParams.forEach((ele, key) => {
-    console.log(ele, key);
     if (key == "userName") {
       userName = ele;
     }
@@ -50,7 +47,6 @@ wss.on("connection", async (ws, req) => {
 
     if (userData) {
       teamUsers.forEach((ele) => {
-        console.log(ele);
         if (ele.userName === userName) {
           flag = true;
         }
@@ -59,6 +55,7 @@ wss.on("connection", async (ws, req) => {
   }
   if (!flag) {
     teamUsers.add({ userName: userName, ws: ws });
+    console.log(`${userName} logged in`);
   }
 
   ws.send(
@@ -88,7 +85,16 @@ wss.on("connection", async (ws, req) => {
       }
     } catch (error) {
       if (message.team) {
-        const team = await ChatGroup.findOne({ Name: message.team });
+        const team = await ChatGroup.findOne({ Name: message.team })
+          .populate({
+            path: "users",
+            populate: {
+              path: "user",
+            },
+          })
+          .then((grp) => {
+            users = grp.users;
+          });
       }
     }
     var allUserNames = new Set();
@@ -97,16 +103,19 @@ wss.on("connection", async (ws, req) => {
         allUserNames.add(ele.user.userName);
       }
     });
-    console.log(allUserNames);
     teamUsers.forEach((teamUser) => {
       if (allUserNames.has(teamUser.userName)) {
-        console.log("Hmm user found");
         if (teamUser.ws !== ws && teamUser.ws.readyState === websocket.OPEN) {
-          console.log("Client data");
           teamUser.ws.send(message);
         }
       }
     });
+  });
+
+  ws.on("close", () => {
+    const obj = [...teamUsers].find((obj) => obj.userName === userName);
+    teamUsers.delete(obj);
+    console.log(`${userName} logged out`);
   });
 });
 
