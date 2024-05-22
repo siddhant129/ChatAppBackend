@@ -45,11 +45,13 @@ exports.createGrps = async (req, res) => {
 exports.addUser = async (req, res) => {
   const newUser = await Users.findOne({ userName: req.body.user }).catch(
     (err) => {
-      return res.send("User not found");
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
   );
   if (!newUser) {
-    return res.send("No user found");
+    return res.status(404).json({ success: false, message: "User not found" });
   }
 
   var flag = false;
@@ -72,7 +74,9 @@ exports.addUser = async (req, res) => {
       });
     });
   if (flag) {
-    return res.send("User already exists");
+    return res
+      .status(400)
+      .json({ success: false, message: "User already exists" });
   }
   const chatGrp = await ChatGroup.findOneAndUpdate(
     { Name: req.body.Name },
@@ -92,8 +96,12 @@ exports.addUser = async (req, res) => {
   });
 
   if (chatGrp) {
-    return res.json({ createdGropup: chatGrp });
+    return res.status(201).json({
+      success: true,
+      message: "User added successfully",
+      createdGropup: chatGrp,
+    });
   } else {
-    return res.send("No grp found");
+    return res.status(404).json({ success: false, message: "No grp found" });
   }
 };
