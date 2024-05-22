@@ -44,7 +44,6 @@ wss.on("connection", async (ws, req) => {
   var flag = false;
   if (userName) {
     const userData = await Users.findOne({ userName: userName });
-
     if (userData) {
       teamUsers.forEach((ele) => {
         if (ele.userName === userName) {

@@ -43,7 +43,15 @@ exports.createGrps = async (req, res) => {
 //@private method to add user
 //Token required
 exports.addUser = async (req, res) => {
-  const newUser = await Users.findOne({ userName: req.body.user });
+  const newUser = await Users.findOne({ userName: req.body.user }).catch(
+    (err) => {
+      return res.send("User not found");
+    }
+  );
+  if (!newUser) {
+    return res.send("No user found");
+  }
+
   var flag = false;
   const newUser1 = { user: newUser._id, admin: false };
   const aldExist = await ChatGroup.findOne({ Name: req.body.Name })
